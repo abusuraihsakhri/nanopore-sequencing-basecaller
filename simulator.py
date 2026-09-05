@@ -1,15 +1,16 @@
 """
 Distributed Component High-Throughput Traffic & Stress Testing Simulator for Nanopore Sequencing Basecaller.
 """
+import argparse
 import time
 import random
-import sys
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
 from agents.base import PHIGuard, SecurityException, AuditLogger
 
-def run_simulation(iterations: int = 100):
-    print(f"Starting Distributed Component Simulation on Nanopore Sequencing Basecaller ({iterations} tasks)...")
+
+def run_simulation(iterations: int = 100, concurrency: int = 1):
+    print(f"Starting Distributed Component Simulation on Nanopore Sequencing Basecaller ({iterations} tasks, concurrency={concurrency})...")
     supervisor = SystemSupervisor(model_provider="mock")
     start_time = time.time()
     nominal_count = 0
@@ -62,6 +63,14 @@ def run_simulation(iterations: int = 100):
     print(f"  HMAC Cryptographic Check:  {AuditLogger.verify_integrity()}")
     print("=" * 70)
 
+
+def main():
+    parser = argparse.ArgumentParser(description="Nanopore Sequencing Basecaller Simulator")
+    parser.add_argument("--tasks", type=int, default=100, help="Number of simulation tasks")
+    parser.add_argument("--concurrency", type=int, default=1, help="Concurrency level (reserved for future use)")
+    args = parser.parse_args()
+    run_simulation(args.tasks, args.concurrency)
+
+
 if __name__ == "__main__":
-    n = int(sys.argv[1]) if len(sys.argv) > 1 else 100
-    run_simulation(n)
+    main()
