@@ -2,9 +2,10 @@
 FastAPI REST API Server for Nanopore Sequencing Basecaller.
 """
 from typing import Dict, Any, List
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
-from .base import AuditLogger, PHIGuard
+from fastapi.responses import JSONResponse
+from .base import AuditLogger, SecurityException
 from .models import SystemTaskPayload, ConsensusDossier
 from .supervisor import SystemSupervisor
 
@@ -15,6 +16,12 @@ app = FastAPI(
     description="Enterprise Distributed Component Platform (Clinical & Biomedical AI)",
     version="3.0.0-ENTERPRISE",
 )
+
+
+@app.exception_handler(SecurityException)
+async def sensitive_input_handler(request: Request, exc: SecurityException):
+    # Do not echo user input or matching identifier back to the client.
+    return JSONResponse(status_code=422, content={"detail": "Potential sensitive identifier detected. Remove identifying data and retry."})
 
 
 class ChatRequest(BaseModel):
@@ -46,8 +53,10 @@ def api_chat(req: ChatRequest):
     try:
         ans = supervisor.query_supervisory_chat(req.query)
         return {"response": ans}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except SecurityException:
+        raise
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid supervisory query")
 
 
 @app.get("/api/audit/logs")
