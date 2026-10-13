@@ -7,6 +7,12 @@
     el.textContent = text;
     el.className = isError ? "error" : "success";
   }
+  function clearDownload() {
+    lastFasta = null;
+    $("download").disabled = true;
+  }
+  $("matrix").addEventListener("input", clearDownload);
+  $("read-id").addEventListener("input", clearDownload);
   $("decode").addEventListener("click", function () {
     lastFasta = null;
     $("download").disabled = true;
@@ -35,7 +41,7 @@
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
   $("matrix-file").addEventListener("change", async function () {
     const file = this.files[0];
@@ -43,6 +49,7 @@
     if (file.size > 1000000) { message("decode-status", "File exceeds 1 MB.", true); return; }
     try {
       $("matrix").value = await file.text();
+      clearDownload();
       message("decode-status", "File loaded locally. Press Decode CTC to validate.", false);
     } catch (_) {
       message("decode-status", "Cannot read the selected file.", true);
