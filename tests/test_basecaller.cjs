@@ -31,7 +31,7 @@ test("parses CSV header and JSON matrices", () => {
   const expected = [[0.8,0.2,0,0,0]];
   assert.deepEqual(parseMatrix("blank,A,C,G,T\n0.8,0.2,0,0,0"), expected);
   assert.deepEqual(parseMatrix(JSON.stringify(expected)), expected);
-  assert.throws(() => parseMatrix("{bad"), /sum|five/);
+  assert.throws(() => decodeCTC(parseMatrix("{bad")), /five|finite/);
 });
 
 test("FASTA identifier is sanitized and sequence validated", () => {
