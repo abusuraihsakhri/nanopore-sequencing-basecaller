@@ -1,174 +1,86 @@
 # Nanopore Sequencing Basecaller
 
-> **Domain:** Clinical Decision Support & Biomedical Computing  
-> **Reference Guidelines & Standards:** `Standard Clinical Formulations & ISO/IEC Quality Frameworks`
+A Python rule-based QC/audit demonstrator with a standalone browser **CTC greedy-decoding example**. The browser decodes nucleotide probability vectors that have **already** been produced by a model; it does not infer bases from raw nanopore current. The Python workers evaluate arbitrary numeric thresholds and status keywords, not experimentally derived Oxford Nanopore quality metrics.
 
-<div align="center">
+**Research and teaching demonstration only.** No trained neural network, raw-signal processing, calibrated Phred quality scores, modified-base calling, specimen validation, or clinical decision support is provided.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+## Components
 
-</div>
+| Component | What it actually does |
+| --- | --- |
+| **web/** | Offline-capable, static browser CTC greedy decoder plus local threshold-audit demo |
+| **agents/** | Pydantic/FastAPI rule-based supervisor with an in-process, HMAC-chained audit log |
+| **cli.py** | CLI for a single audit, CSV batch, mock status query, and API server |
+| **nanopore_basecaller/** | Older, independent rule-based audit engine and CLI |
+| **enrichment.py** | Illustrative threshold checks named after sequencing tasks; **does not implement** those analyses |
+| **simulator.py** | Synthetic traffic exerciser for the rule-based supervisor |
 
----
+## Browser decoder
 
-## 📖 What It Does
+Open **web/index.html** locally in a browser, or use a verified GitHub Pages deployment when available. No server, Pyodide, GPU, or external JavaScript dependencies are required.
 
-Nanopore Sequencing Basecaller is an enterprise-grade distributed component platform that orchestrates multiple specialized workers (QC, Safety, Protocol Conformance) to evaluate task payloads, classify urgency levels, and maintain a tamper-evident HMAC-SHA256 audit trail.
+1. Paste a JSON 2D array or CSV with columns blank,A,C,G,T and one probability row per timestep (values between 0 and 1; each row sums to 1 within 0.01).
+2. Run **Decode CTC**. Greedy decoding selects the largest posterior per timestep, collapses consecutive repeated labels, then removes the blank label. A blank between repeated bases preserves the repeat.
+3. Export the output as FASTA. The reported mean argmax probability is **not** calibrated base quality or an accuracy estimate.
 
----
+Input is limited to 1 MB and 20,000 timesteps. Import and computation remain on the user's device. The separate local QC panel applies the existing arbitrary rules (primary >25, secondary >12, critical flag, anomaly keywords) and does not create signed audit logs.
 
-## ⚙️ Key Capabilities & Algorithmic Modules
+## Python installation
 
-- **Deterministic Calculation Engine**: Strict compliance with standard reference formulations and thresholds.
-- **Risk & Urgency Classification**: Multi-tier categorization (ROUTINE, ELEVATED, CRITICAL_STAT) with automated clinical/operational action recommendations.
-- **Validation & Guardrails**: Rigorous input bounds checking and anomaly detection.
-- **Multi-Agent Orchestration**: InvariantQCWorker, SafetyEscalationWorker, and ProtocolConformanceWorker.
-- **Enrichment Suite**: Basecalling Quality Metrics, Context-Aware Basecalling, Modified Base Detection, Real-Time Basecalling, Structural Variant Detection, Metagenomic Classification, RNA Direct Sequencing, Workflow Integration.
+Requires Python 3.10+.
 
----
+~~~bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[server,test]"
+python -m pytest -q
+node --test tests/test_basecaller.cjs  # optional: Node.js 18+
+~~~
 
-## 💻 CLI Quickstart & Usage
+For a smaller CLI-only installation, use **python -m pip install .** (requires Pydantic but not FastAPI/Uvicorn).
 
-### Installation
-```bash
-pip install fastapi uvicorn pydantic pytest
-```
+## CLI
 
-### 1. Single Task Evaluation
-```bash
-python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
-```
+~~~bash
+nanopore-sequencing-basecaller audit --task-id T-001 --target SPECIMEN-001 --primary 29 --secondary 13 --status DISCORDANT
+nanopore-sequencing-basecaller batch -i sample.csv -o results.csv
+nanopore-sequencing-basecaller chat "What is the system status?"
+nanopore-sequencing-basecaller verify-audit
+nanopore-sequencing-basecaller serve --host 127.0.0.1 --port 8000
+squigglecaller-audit audit --primary 29 --secondary 13  # older audit workflow
+python simulator.py --tasks 100
+~~~
 
-### 2. System Chat Query
-```bash
-python cli.py chat "What is the system status?"
-```
+The batch CSV requires a primary_metric column; other recognized fields include task_id, target_identifier, secondary_metric, status_descriptor, and is_critical_flag. Flag values are case-insensitive true/false, yes/no, and 1/0. Invalid records are skipped with a warning by the primary CLI.
 
-### 3. Batch Processing
-```bash
-python cli.py batch -i sample.csv -o results.csv
-```
+## API
 
-### 4. Verify Audit Trail Integrity
-```bash
-python cli.py verify-audit
-```
+Start the server with the CLI above. Useful endpoints:
 
-### 5. Launch FastAPI Server
-```bash
-python cli.py serve --host 127.0.0.1 --port 8000
-```
+- **GET /health**: health response
+- **POST /api/audit**: validate input and return a rule-based audit dossier
+- **POST /api/chat**: deterministic mock response (not model inference)
+- **GET /metrics**: JSON counters, **not** Prometheus text
+- **GET /api/audit/logs**: in-memory audit hash-chain records and verification result
+- **GET /docs**: FastAPI-generated OpenAPI UI
 
-### 6. Run Simulation
-```bash
-python simulator.py --tasks 1000
-```
+The API uses illustrative thresholds and returns no prediction of sequencing accuracy. The HMAC log is **process-local and nonpersistent**: it is not an immutable ledger, not a full audit of all input data, and not a substitute for regulated logging. Provide AUDIT_SECRET_KEY for stable signing within a process; without it, the service generates an ephemeral key. Do not send patient-identifying data. Regex-based screening catches certain identifier formats but does **not** guarantee removal of protected health information. Do not expose this unauthenticated demo server or its logs to untrusted networks.
 
-### Parameter Reference
-| Argument | Description | Default |
-|:---------|:------------|:--------|
-| `--task-id` | Unique task identifier | TASK-2026-001 |
-| `--target` | Target/specimen identifier | KEY-TARGET-01 |
-| `--primary` | Primary metric (float) | 28.5 |
-| `--secondary` | Secondary metric (float) | 14.2 |
-| `--critical` | Critical flag (boolean) | False |
-| `--status` | Status descriptor | DISCORDANT |
+## Docker
 
-### Input Data Schema
-
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `task_id` | Unique task/case identifier | Required |
-| `target_identifier` | Entity or target key | Required |
-| `primary_metric` | Primary measurement (finite float) | Required |
-| `secondary_metric` | Secondary kinetic score | Optional (default 0.0) |
-| `is_critical_flag` | Emergency escalation flag | Optional (default False) |
-| `status_descriptor` | Status code or phenotype | Optional (default "NOMINAL") |
-
----
-
-## 🛡️ Security & Enterprise Architecture
-
-* **Zero-PHI Outbound Interceptor:** Active regex inspection blocking SSNs, MRNs, phone numbers, emails, DOB, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-* **Air-Gapped LLM Reasoning Adapter:** Deterministic mock integration (extensible to Ollama, Claude, GPT-4).
-* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
-
-### Security Configuration
-Set the audit secret key via environment variable:
-```bash
-export AUDIT_SECRET_KEY="your-secure-random-key"
-```
-
----
-
-## 🧪 Testing & Verification
-
-Run the automated test suite:
-```bash
-pytest -v
-```
-
-Execute high-throughput batch simulation benchmarks:
-```bash
-python simulator.py --tasks 1000
-```
-
----
-
-## 🐳 Container Deployment
-
-```bash
-# Build and run
+~~~bash
 docker build -t nanopore-sequencing-basecaller .
-docker run -e AUDIT_SECRET_KEY=$(openssl rand -hex 32) -p 8000:8000 nanopore-sequencing-basecaller
+docker run --rm -p 127.0.0.1:8000:8000 -e AUDIT_SECRET_KEY="$(openssl rand -hex 32)" nanopore-sequencing-basecaller
+~~~
 
-# Or use docker-compose
-echo "AUDIT_SECRET_KEY=$(openssl rand -hex 32)" > .env
-docker-compose up -d
-```
+For Compose, set AUDIT_SECRET_KEY in a local .env file and run **docker compose up --build**. The file is ignored by Git.
 
----
+## CI, deployment, compatibility
 
-## 📁 Project Structure
+GitHub Actions runs Python tests on 3.10–3.12 and JavaScript syntax/decoder tests using Node. A separate Pages workflow publishes the static **web/** folder on pushes to **master**, provided GitHub Pages is enabled with GitHub Actions as the source. No Python server or trained model runs on GitHub Pages.
 
-```
-nanopore-sequencing-basecaller/
-├── agents/                    # Core agent orchestration
-│   ├── api.py                 # FastAPI REST endpoints
-│   ├── base.py                # Security, PHI guard, audit trail
-│   ├── llm_factory.py         # LLM provider factory
-│   ├── models.py              # Pydantic schemas
-│   ├── supervisor.py          # Multi-agent supervisor
-│   ├── workers.py             # Specialized worker agents
-│   ├── learning.py            # Bayesian calibration engine
-│   ├── metrics.py             # Prometheus metrics
-│   └── streamer.py            # WebSocket telemetry
-├── nanopore_basecaller/       # Alternative CLI entrypoint
-│   ├── agents.py              # Sub-agent coordinators
-│   ├── engine.py              # Domain evaluation engine
-│   ├── models.py              # Data models
-│   ├── server.py              # FastAPI server factory
-│   └── cli.py                 # CLI interface
-├── tests/                     # Pytest test suite
-├── web/                       # Operations console (HTML)
-├── cli.py                     # Main CLI entrypoint
-├── simulator.py               # Stress testing simulator
-├── enrichment.py              # Domain enrichment suite
-├── pyproject.toml             # Project configuration
-├── Dockerfile                 # Container definition
-├── docker-compose.yml         # Compose configuration
-└── .github/workflows/ci.yml   # CI/CD pipeline
-```
+The browser demo uses modern JavaScript supported by current Chrome, Firefox, Safari and Edge. All input stays within the local page unless the user separately uses the Python API. It does not persist input in browser storage.
 
----
+## License
 
-## 📄 License
-
-MIT License. See [LICENSE](LICENSE) for details.
+MIT. See [LICENSE](LICENSE).
