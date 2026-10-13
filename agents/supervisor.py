@@ -1,6 +1,6 @@
 """
 Supervisor Orchestrator & Operations Intelligence for Nanopore Sequencing Basecaller.
-Domain: Clinical & Biomedical AI
+Domain: Rule-based QC demonstration
 """
 import uuid
 from typing import Dict, Any, List, Optional
@@ -74,5 +74,5 @@ class SystemSupervisor:
 
     def query_supervisory_chat(self, query: str) -> str:
         PHIGuard.assert_no_phi(query)
-        prompt = f"Supervisor inquiry for Nanopore Sequencing Basecaller under CAP / CLSI / ISO Standards: {query}"
+        prompt = f"Supervisor inquiry for the QC demonstration: {query}"
         return self.llm.invoke(prompt)
