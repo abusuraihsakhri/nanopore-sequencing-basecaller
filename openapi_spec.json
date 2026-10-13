@@ -3,7 +3,7 @@
   "info": {
     "title": "Nanopore Sequencing Basecaller API",
     "description": "Rule-based example audit service. Not a raw nanopore basecaller or a validated clinical device.",
-    "version": "3.0.0-ENTERPRISE",
+    "version": "2.0.0",
     "contact": {
       "name": "Dr. Abu Suraih Sakhri",
       "url": "https://github.com/abusuraihsakhri"
