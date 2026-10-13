@@ -1,236 +1,90 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nanopore Sequencing Basecaller — Operations Console</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #090d16;
-            --card: #111827;
-            --border: #1f293d;
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.25);
-            --text: #f3f4f6;
-            --text-muted: #9ca3af;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --success: #10b981;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 2rem;
-            min-height: 100vh;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .header-title h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
-        .header-title p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem; }
-        .badge {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: var(--accent-glow);
-            color: var(--accent);
-            border: 1px solid var(--accent);
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr;
-            gap: 1.5rem;
-        }
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .card h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; }
-        input, select, textarea {
-            width: 100%;
-            padding: 0.65rem 0.9rem;
-            background: #0d1322;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: #fff;
-            font-family: inherit;
-            font-size: 0.9rem;
-        }
-        input:focus, textarea:focus { outline: none; border-color: var(--accent); }
-        .btn {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 0.7rem 1.4rem;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-        }
-        .btn:hover { background: #2563eb; }
-        .terminal {
-            background: #060911;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: #10b981;
-            height: 380px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        .metrics-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .metric-box {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
-        }
-        .metric-val { font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: 0.25rem; }
-        .metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Local CTC greedy-decoding demonstration for probability matrices and a rule-based QC audit demo. No raw nanopore current basecalling.">
+  <title>Nanopore Basecalling | CTC Demonstration</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: #090f1c; color: #eef3ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; line-height: 1.5; }
+    main { max-width: 1050px; margin: 0 auto; padding: 2rem 1.2rem 4rem; }
+    h1 { font-size: clamp(1.5rem, 4vw, 2.15rem); margin: 0 0 .3rem; }
+    h2 { font-size: 1.18rem; margin: 0 0 .7rem; }
+    p { color: #bfcce2; margin: .4rem 0 1rem; }
+    .lede { max-width: 780px; }
+    .panels { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,420px),1fr)); gap: 1rem; margin-top: 1.4rem; }
+    .panel { padding: 1.3rem; background: #141e30; border: 1px solid #34445c; border-radius: 12px; }
+    label { display: block; font-weight: 600; font-size: .9rem; margin: .7rem 0 .25rem; }
+    input,textarea { display: block; width: 100%; background: #0c1423; border: 1px solid #53647d; border-radius: 6px; color: #fff; font: inherit; padding: .65rem; }
+    input[type="checkbox"] { display: inline; width: auto; margin-right: .4rem; }
+    textarea { min-height: 185px; resize: vertical; font: .82rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+    button { padding: .67rem 1rem; border: 1px solid #6ca6ff; border-radius: 7px; background: #2769d7; color: white; font: inherit; font-weight: 600; cursor: pointer; }
+    button.secondary { background: transparent; color: #d3e4ff; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    :is(button,input,textarea):focus-visible { outline: 3px solid #ffd271; outline-offset: 2px; }
+    .actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: .85rem; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: .9rem; border: 1px solid #36455c; border-radius: 7px; background: #090f1c; min-height: 85px; font: .84rem/1.55 ui-monospace, Consolas, monospace; }
+    .hint { font-size: .85rem; color: #bbcae0; }
+    .notice { border-left: 3px solid #e6b664; padding: .6rem .9rem; background: #28251e; margin-top: 1rem; color: #f9ddb1; }
+    .error { color: #ffbab5; }
+    .success { color: #a6efc0; }
+    footer { margin-top: 1.8rem; color: #aabbd1; font-size: .85rem; }
+    a { color: #9dc4ff; }
+  </style>
+  <script defer src="./basecaller.js"></script>
+  <script defer src="./app.js"></script>
 </head>
 <body>
-
-    <div class="header">
-        <div class="header-title">
-            <h1>Nanopore Sequencing Basecaller</h1>
-            <p>Domain: Clinical & Cryptographic AI | Standard: CAP / CLSI / NIST Standards | LabMind-Atlas Architecture</p>
-        </div>
-        <div>
-            <span class="badge">Air-Gapped Active</span>
-            <span class="badge" style="background: rgba(16,185,129,0.2); color: #10b981; border-color: #10b981;">Zero-PHI Guard Active</span>
-        </div>
+<main>
+  <header>
+    <h1>Nanopore sequencing · CTC decoder demo</h1>
+    <p class="lede">Explore greedy Connectionist Temporal Classification (CTC) decoding of <strong>model-output DNA probabilities</strong>. All calculations occur locally in the browser; no file is uploaded.</p>
+    <p class="notice"><strong>Scope:</strong> This demo does not ingest raw nanopore ionic current, train or run a neural signal model, call modified bases, or produce validated clinical results. The separate QC audit is a rule-based demonstration, not a laboratory standard.</p>
+  </header>
+  <section class="panels" aria-label="Analysis tools">
+    <div class="panel">
+      <h2>1 · Decode timestep probabilities</h2>
+      <p class="hint">Enter a JSON 2D array or CSV. Each row: <code>blank,A,C,G,T</code>; all five probabilities must sum to 1. Repeated symbols collapse unless separated by a blank.</p>
+      <label for="read-id">Read identifier</label>
+      <input id="read-id" value="example_read" maxlength="80" autocomplete="off">
+      <label for="matrix">Probability matrix</label>
+      <textarea id="matrix" spellcheck="false">blank,A,C,G,T
+0.01,0.96,0.01,0.01,0.01
+0.01,0.96,0.01,0.01,0.01
+0.95,0.02,0.01,0.01,0.01
+0.01,0.01,0.96,0.01,0.01
+0.95,0.02,0.01,0.01,0.01
+0.01,0.01,0.01,0.96,0.01
+0.95,0.02,0.01,0.01,0.01
+0.01,0.01,0.01,0.01,0.96</textarea>
+      <label for="matrix-file">Or import JSON / CSV (max 1 MB)</label>
+      <input id="matrix-file" type="file" accept=".json,.csv,.txt,text/plain,application/json,text/csv">
+      <div class="actions">
+        <button type="button" id="decode">Decode CTC</button>
+        <button type="button" id="download" class="secondary" disabled>Download FASTA</button>
+      </div>
+      <p id="decode-status" role="status" aria-live="polite" class="hint"></p>
+      <pre id="decoded-result" aria-label="Decoded sequence">Run the example to see the DNA sequence.</pre>
     </div>
-
-    <div class="metrics-bar">
-        <div class="metric-box">
-            <div class="metric-label">System Status</div>
-            <div class="metric-val" style="color: var(--success);" id="m-status">OPTIMAL</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Tasks Processed</div>
-            <div class="metric-val" id="m-tasks">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Audit Blocks Signed</div>
-            <div class="metric-val" id="m-audit">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">PHI Interceptions</div>
-            <div class="metric-val" style="color: var(--accent);" id="m-phi">0</div>
-        </div>
+    <div class="panel">
+      <h2>2 · Rule-based QC audit</h2>
+      <p class="hint">A transparent local approximation of the repository's legacy threshold audit. It does not assess raw sequencing quality.</p>
+      <label for="primary">Primary arbitrary metric (warning if &gt;25)</label>
+      <input id="primary" type="number" value="29.4" step="any" required>
+      <label for="secondary">Secondary arbitrary metric (warning if &gt;12)</label>
+      <input id="secondary" type="number" value="14.8" step="any" required>
+      <label for="descriptor">Status descriptor</label>
+      <input id="descriptor" value="DISCORDANT_ANOMALY">
+      <label for="critical"><input id="critical" type="checkbox" checked> Critical flag</label>
+      <div class="actions"><button type="button" id="evaluate">Evaluate locally</button></div>
+      <p id="audit-status" role="status" aria-live="polite" class="hint"></p>
+      <pre id="audit-result" aria-label="Audit results">Run the threshold audit to see alerts.</pre>
+      <p class="hint">No simulated signatures, fabricated telemetry, remote API, or persistent audit ledger.</p>
     </div>
-
-    <div class="grid">
-        <div class="card">
-            <h2>⚙️ Dispatch Distributed Component Audit</h2>
-            <div class="form-group">
-                <label>Task / Sample ID</label>
-                <input type="text" id="task_id" value="TASK-2026-LIVE-01">
-            </div>
-            <div class="form-group">
-                <label>Target Identifier</label>
-                <input type="text" id="target_id" value="SPECIMEN-ALPHA-77">
-            </div>
-            <div class="form-group">
-                <label>Primary Measurement / Value</label>
-                <input type="number" id="primary_metric" value="29.4" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Secondary Metric / Kinetic Index</label>
-                <input type="number" id="secondary_metric" value="14.8" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Status / Phenotype Descriptor</label>
-                <input type="text" id="status_descriptor" value="DISCORDANT_ANOMALY">
-            </div>
-            <div class="form-group">
-                <label><input type="checkbox" id="is_critical" checked> Trigger Emergency / Critical Flag</label>
-            </div>
-            <button class="btn" onclick="runAudit()">Execute Distributed Component Audit</button>
-        </div>
-
-        <div class="card">
-            <h2>📊 Real-Time Consensus Dossier & Audit Log</h2>
-            <div class="terminal" id="outputConsole">// Nanopore Sequencing Basecaller Operations Console Ready
-// Connection established with Air-Gapped Supervisor
-// Cryptographic HMAC-SHA256 audit ledger loaded.
-// Ready for live task payload dispatch...</div>
-        </div>
-    </div>
-
-    <script>
-        async function runAudit() {
-            const consoleEl = document.getElementById('outputConsole');
-            consoleEl.innerText = "// Dispatching task across specialized workers...
-// Invoking InvariantQCWorker, SafetyEscalationWorker, ProtocolWorker...";
-
-            const payload = {
-                task_id: document.getElementById('task_id').value,
-                target_identifier: document.getElementById('target_id').value,
-                primary_metric: parseFloat(document.getElementById('primary_metric').value),
-                secondary_metric: parseFloat(document.getElementById('secondary_metric').value),
-                status_descriptor: document.getElementById('status_descriptor').value,
-                is_critical_flag: document.getElementById('is_critical').checked
-            };
-
-            try {
-                const res = await fetch('/api/audit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                consoleEl.innerText = JSON.stringify(data, null, 2);
-                document.getElementById('m-tasks').innerText = parseInt(document.getElementById('m-tasks').innerText) + 1;
-                document.getElementById('m-audit').innerText = parseInt(document.getElementById('m-audit').innerText) + 1;
-            } catch (err) {
-                consoleEl.innerText = "// Offline / Simulation Output:\n" + JSON.stringify({
-                    dossier_id: "DOSSIER-SIM-" + Math.floor(Math.random()*10000),
-                    system: "nanopore-sequencing-basecaller",
-                    domain: "Clinical & Cryptographic AI",
-                    task_id: payload.task_id,
-                    overall_urgency: payload.is_critical_flag ? "CRITICAL_STAT_PANIC" : "ELEVATED_RISK",
-                    integrity_status: "DISCORDANT_ANOMALY",
-                    alerts: [
-                        { worker: "InvariantQCWorker", alert: "Primary metric exceeds upper reference bound" },
-                        { worker: "SafetyEscalationWorker", alert: "Critical emergency interlock flag active" }
-                    ],
-                    audit_hash: "HMAC_SHA256_e83f9a72b941d6c381f9"
-                }, null, 2);
-            }
-        }
-    </script>
+  </section>
+  <footer>Open-source demonstration. <a href="https://github.com/abusuraihsakhri/nanopore-sequencing-basecaller" rel="noopener noreferrer">Source repository</a>. Avoid entering patient-identifying information.</footer>
+</main>
 </body>
 </html>
