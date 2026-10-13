@@ -2,9 +2,10 @@
 FastAPI REST API Server for Nanopore Sequencing Basecaller.
 """
 from typing import Dict, Any, List
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
-from .base import AuditLogger, PHIGuard
+from fastapi.responses import JSONResponse
+from .base import AuditLogger, SecurityException
 from .models import SystemTaskPayload, ConsensusDossier
 from .supervisor import SystemSupervisor
 
@@ -12,9 +13,15 @@ supervisor = SystemSupervisor(model_provider="mock")
 
 app = FastAPI(
     title="Nanopore Sequencing Basecaller API",
-    description="Enterprise Distributed Component Platform (Clinical & Biomedical AI)",
-    version="3.0.0-ENTERPRISE",
+    description="Rule-based QC demonstration. Not a raw nanopore signal basecaller or clinical decision-support system.",
+    version="2.0.0",
 )
+
+
+@app.exception_handler(SecurityException)
+async def sensitive_input_handler(request: Request, exc: SecurityException):
+    # Do not echo user input or matching identifier back to the client.
+    return JSONResponse(status_code=422, content={"detail": "Potential sensitive identifier detected. Remove identifying data and retry."})
 
 
 class ChatRequest(BaseModel):
@@ -23,7 +30,7 @@ class ChatRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "HEALTHY", "service": "nanopore-sequencing-basecaller", "domain": "Clinical & Biomedical AI", "standard": "CAP / CLSI / ISO Standards", "version": "3.0.0-ENTERPRISE"}
+    return {"status": "HEALTHY", "service": "nanopore-sequencing-basecaller", "domain": "QC demonstration", "standard": "Illustrative thresholds", "version": "2.0.0"}
 
 
 @app.get("/metrics")
@@ -31,7 +38,7 @@ def metrics():
     return {
         "dossiers_processed_total": len(supervisor.dossier_registry),
         "audit_blocks_total": len(AuditLogger.get_trail()),
-        "system_status": "NOMINAL_OPTIMAL"
+        "system_status": "RUNNING"
     }
 
 
@@ -46,8 +53,10 @@ def api_chat(req: ChatRequest):
     try:
         ans = supervisor.query_supervisory_chat(req.query)
         return {"response": ans}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except SecurityException:
+        raise
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid supervisory query")
 
 
 @app.get("/api/audit/logs")
