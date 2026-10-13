@@ -13,14 +13,23 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Topic :: Security/Cryptography",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-requires-python = ">=3.9"
-dependencies = []
+requires-python = ">=3.10"
+dependencies = ["pydantic>=2.4,<3"]
+
+[project.optional-dependencies]
+server = ["fastapi>=0.100,<1", "uvicorn>=0.23,<1"]
+test = ["pytest>=8,<10", "httpx>=0.27,<1"]
+
+[tool.setuptools]
+packages = ["agents", "nanopore_basecaller"]
+py-modules = ["cli", "enrichment", "simulator", "nanopore_basecaller_app"]
 
 [project.scripts]
-nanopore-sequencing-basecaller = "nanopore_basecaller.cli:main"
+nanopore-sequencing-basecaller = "cli:main"
+squigglecaller-audit = "nanopore_basecaller.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/abusuraihsakhri/nanopore-sequencing-basecaller"
